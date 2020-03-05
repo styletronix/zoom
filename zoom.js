@@ -266,7 +266,7 @@ function Zoom(elem, config, wnd) {
     this.elemParent = elem.parentNode;
     this.activeZoom = identity;
     this.resultantZoom = identity;
-
+    this.startDragCoords = null;
     this.srcCoords = [0, 0];
     this.destCoords = [0, 0];
     var me = this;
@@ -306,6 +306,7 @@ function Zoom(elem, config, wnd) {
         ];
     };
 
+
     var getCoords = function(t) {
         return t.length > 1 ? getCoordsDouble(t) : getCoordsSingle(t);
     };
@@ -314,6 +315,7 @@ function Zoom(elem, config, wnd) {
         me.srcCoords = getCoords(touches);
         me.destCoords = me.srcCoords;
     };
+
 
     var setDest = function(touches){
         me.destCoords = getCoords(touches);
@@ -346,6 +348,42 @@ function Zoom(elem, config, wnd) {
         }
     });
 
+    this._handleDrag = function (event) {
+        if (!me.startDragCoords) { return;}
+
+        var deltaX = event.clientX - me.startDragCoords[0];
+        var deltaY = event.clientY - me.startDragCoords[1];
+        me.startDragCoords = [event.clientX, event.clientY];
+
+        me.activeZoom.b[0] += deltaX;
+        me.activeZoom.b[1] += deltaY;
+
+        me.resultantZoom = me.activeZoom;
+        me.repaint();
+
+        
+    };
+
+    this._handleDragStart = function (event) {
+        me.startDragCoords = [event.clientX, event.clientY];
+    };
+    this._handleDragStop = function (event) {
+        me.startDragCoords = null;
+    };
+
+    this._handleWheel = function (event) {
+        event.preventDefault();
+
+        me.activeZoom.A[0][0] += event.deltaY * -0.0001;
+        me.activeZoom.A[1][1] += event.deltaY * -0.0001;
+
+        if (me.activeZoom.A[0][0] < 0.001) { me.activeZoom.A[0][0] = 0.002; }
+        if (me.activeZoom.A[1][1] < 0.001) { me.activeZoom.A[1][1] = 0.002; }
+
+        me.resultantZoom = me.activeZoom;
+        me.repaint();
+    };
+
     this._handleTouchStart = handleTouchEvent(function(touches) {
         if (touches.length === 1) {
             if (me.mayBeDoubleTap !== null) {
@@ -364,6 +402,10 @@ function Zoom(elem, config, wnd) {
     this.elemParent.addEventListener('touchstart', this._handleZoom);
     this.elemParent.addEventListener('touchmove', this._handleZoom);
     this.elemParent.addEventListener('touchend', this._handleZoom);
+    this.elemParent.addEventListener('wheel', this._handleWheel);
+    this.elemParent.addEventListener('mousemove', this._handleDrag);
+    this.elemParent.addEventListener('mousedown', this._handleDragStart);
+    document.addEventListener('mouseup', this._handleDragStop);
 }
 
 Zoom.prototype.destroy = function() {
@@ -371,6 +413,10 @@ Zoom.prototype.destroy = function() {
     this.elemParent.removeEventListener('touchstart', this._handleZoom);
     this.elemParent.removeEventListener('touchmove', this._handleZoom);
     this.elemParent.removeEventListener('touchend', this._handleZoom);
+    this.elemParent.removeEventListener('wheel', this._handleWheel);
+    this.elemParent.removeEventListener('mousemove', this._handleDrag);
+    this.elemParent.removeEventListener('mousedown', this._handleDragStart);
+    document.removeEventListener('mouseup', this._handleDragStop);
 
     this.elem.style['will-change'] = null;
     this.elem.style['transform-origin'] = null;
@@ -382,6 +428,17 @@ Zoom.prototype.previewZoom = function() {
     this.resultantZoom = cascade(additionalZoom, this.activeZoom);
     this.repaint();
 };
+
+//Zoom.prototype.rotateClockwise = function () {
+//    this.elem.style['transform-origin'] = '0.5 0.5';
+
+//    this.resultantZoom = this.activeZoom;
+//    this.repaint();
+//};
+
+//Zoom.prototype.rotateCounterclockwise = function () {
+//    this.
+//};
 
 Zoom.prototype.setZoom = function(newZoom) {
     this.resultantZoom = newZoom;
