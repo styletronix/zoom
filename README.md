@@ -13,6 +13,10 @@ For an explanation of math see https://github.com/anitasv/zoom/wiki/Explaining-M
 
 Send pull requests, bug reports, and feature requests to https://github.com/anitasv/zoom/
 
+# Modifications
+Added Zoom by mousewheel and move by mouse.
+
+
 # Usage
 
 ```html
